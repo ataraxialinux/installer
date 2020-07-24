@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Ataraxia Linux installer
+Comment=Simple program to install Ataraxia Linux distribution
+Exec=ataraxia-installer
+Terminal=true
+Type=Application
+Icon=ataraxia-installer
+Categories=System;

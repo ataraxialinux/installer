@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+
+print_welcome() {
+	cat <<-EOF
+		Welcome to Ataraxia Linux/$(uname -m) installation program!
+
+		This program will install Ataraxia Linux on your computer.
+
+		Make sure your disk size is more than 5 gigabytes.
+	EOF
+	echo -e "\e[5m\e[91mWARNING!\e[39m\e[0m ALL FILES WILL BE DESTROYED!\n"
+}
+
+runlive_cmd() {
+	local cmd="$@"
+
+	chroot /mnt /usr/bin/env -i \
+		HOME=/home/root \
+		TERM="$TERM" \
+		PATH=/usr/bin \
+		/usr/bin/$cmd
+}
+
+list_kmaps() {
+	local kmaps="$(find /usr/share/keymaps -type f -iname "*.map.gz" -printf "%f " | sed 's|.map.gz||g' | sort | uniq)"
+	echo "$kmaps"
+}
+
+configure_system() {
+	read -p "What keyboard layout will you use? [Type 'l' to list keymaps] " -r ikmap
+
+	case $ikmap in
+		l) list_kmaps ;;
+		*) kmap="$ikmap" ;;
+	esac
+
+	read -p "Figure out system hostname " -r hostname
+	read -p "System timezone " -r timezone
+}
+
+select_interfaces() {
+	local avail="$(find /sys/class/net -type l -printf "%f " | sort | uniq)"
+
+	echo "Available network interfaces: $avail"
+	read -p "Which network interfaces do you want to use (Type 's' to skip) " -r if
+
+	case $if in
+		lo) echo "Cannot use following interface: $if"; select_interfaces ;;
+		s) ifskip="yes"; return 0 ;;
+		*) true ;;
+	esac
+
+	select_interfaces_b
+}
+
+select_interfaces_b() {
+	echo "Available network types: dhcp, static, wireless"
+	read -p "Your type of network (selected: $ifmode) " -r ifmode
+
+	case $ifmode in
+		dhcp)
+			cat > /tmp/net <<-EOF
+				auto lo $if
+				iface lo inet loopback
+				iface $if inet dhcp
+			EOF
+			;;
+		static)
+			read -p "Your static address (eg. '192.168.0.101') " -r iaddress
+			read -p "Your netmask (eg. '255.255.255.0') " -r inetmask
+			read -p "Your gateway (eg. '192.168.0.1') " -r igateway
+			cat > /tmp/net <<-EOF
+				auto lo $if
+				iface lo inet loopback
+				iface $if inet static
+					address $iaddress
+					netmask $inetmask
+					gateway $igateway
+			EOF
+			;;
+		wireless)
+			read -p "Your Wi-Fi network name " -r iessid
+			read -p "Your Wi-Fi password " -s -r ipsk
+			cat > /tmp/net <<-EOF
+				auto lo $if
+				iface lo inet loopback
+				iface $if inet dhcp
+					wpa-ssid $iessid
+					wpa-psk $ipsk
+			EOF
+			;;
+		*)
+			echo "Unknown network type, try again"
+			select_interfaces_b
+	esac
+}
+
+configure_root() {
+	runlive_cmd passwd root || configure_root
+}
+
+configure_users_b() {
+	local user="$1"
+	runlive_cmd passwd $user || configure_users_b $user
+}
+
+configure_users() {
+	local iskip
+
+	read -p "Add new user, figure out the name (eg, 'foo') " -r user
+	if [ -z "$user" ]; then
+		read -p "Do you want to skip users creation? (yes/no) " -r iskip
+		case $iskip in
+			yes|y) return 0 ;;
+			no|n|*) configure_users ;;
+		esac
+	fi
+
+	runlive_cmd useradd -m -G users,wheel,audio,video,input $user
+	configure_users_b $user
+}
+
+select_disk() {
+	local avail="$(lsblk -lo NAME,TYPE | grep 'disk' | awk '{print $1}' | sort | uniq)"
+
+	echo "Available disks: $avail"
+	read -p "Which disk do you want to use? " -r disk
+	if [ -z "$disk" ]; then
+		echo "Please select disk to use for installation"
+		select_disk
+	fi
+	export disk
+}
+
+install_os() {
+	local confirm efi efibitness
+
+	echo -e "\n"
+	read -p "Everything needed is ready. Type 'yes' to install Ataraxia on your computer (yes/no) " -r confirm
+	case $confirm in
+		yes|y) true ;;
+		no|n|*) exit 0 ;;
+	esac
+
+	if [ -d "/sys/firmware/efi" ]; then
+		efi="yes"
+		efibitness="$(cat /sys/firmware/efi/fw_platform_size)"
+	else
+		efi="no"
+	fi
+
+	echo "Searching for install media"
+	mount -n -r -t iso9660 LABEL="ataraxialinux" /media/cdrom || \
+	{
+		sleep 3
+		mount -n -r /dev/disk/by-label/ataraxialinux /media/cdrom
+		if [ $? -ne 0 ]; then
+			echo "Failed to find Ataraxia Linux installation media"
+			exit 1
+		fi
+	}
+
+	echo "Creating partitions"
+	if [ "$efi" == "yes" ]; then
+		mklabel="gpt"
+		bootfs="fat"
+	else
+		mklabel="msdos"
+		bootfs="ext4"
+	fi
+
+	parted -s /dev/$disk mklabel $mklabel
+	parted -a optimal -s /dev/$disk mkpart primary 0mb 256mb
+	parted -a optimal -s /dev/$disk mkpart primary 256mb 100%
+	[ "$mklabel" == "msdos" ] && parted -s /dev/$disk set 1 boot on
+
+	echo "Formating partitions"
+	case $bootfs in
+		fat)
+			mkfs.vfat -F32 "/dev/${disk}1"
+			;;
+		ext4)
+			mke2fs -F -t ext4 "/dev/${disk}1"
+			;;
+	esac
+	mkfs.btrfs -f "/dev/${disk}2"
+
+	mount "/dev/${disk}2" /mnt
+	mkdir -p /mnt/boot
+	mount "/dev/${disk}1" /mnt/boot
+
+	echo "Installing operating system"
+	unsquashfs -f -d /mnt /media/cdrom/seiba/seiba.sfs
+
+	echo "Creating mountpoints"
+	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
+
+	echo "Cleaning up"
+	runlive_cmd userdel -r anon
+
+	echo "Creating udev database"
+	runlive_cmd udevadm hwdb --update
+
+	configure_root
+	configure_users
+
+	echo "Copying network configuration"
+	cp /tmp/net /mnt/etc/network/interfaces
+
+	echo "Unmounting everything"
+	for i in proc sys dev boot; do umount -l /mnt/${i}; done
+	umount -l /mnt
+}
+
+main() {
+	rm -rf /tmp/net /tmp/liveun
+
+	export kmap="us"
+	export hostname="localhost"
+	export timezone="America/New_York"
+	export if="eth0"
+	export ifmode="dhcp"
+	export ifskip="no"
+
+	print_welcome
+	configure_system
+	select_interfaces
+	select_disk
+	install_os
+}
+
+main
+
+exit 0
+
