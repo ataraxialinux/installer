@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
 print_welcome() {
+	local num="$((1 + RANDOM % 10))"
+	case $num in
+		1|3|5|7|9) echo -ne "\033]0;The oldest anarchy server in Minecraft\007" ;;
+		2|4|6|8|10) echo -ne "\033]0;Welcome to hell!\007" ;;
+	esac
+
 	cat <<-EOF
 		Welcome to Ataraxia Linux/$(uname -m) installation program!
 
