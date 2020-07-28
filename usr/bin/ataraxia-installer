@@ -207,8 +207,10 @@ install_os() {
 
 	echo "Cleaning up"
 #	runlive_cmd userdel -r anon
-#	runlive_cmd rpm -ehv ataraxia-installer
 	rm /mnt/usr/bin/ataraxia-installer
+	if [ -f "/mnt/etc/motd.old" ]; then
+		mv /mnt/etc/motd.old /mnt/etc/motd
+	fi
 
 	echo "Creating udev database"
 	runlive_cmd udevadm hwdb --update
