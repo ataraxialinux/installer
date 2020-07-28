@@ -102,6 +102,7 @@ select_interfaces_b() {
 }
 
 configure_root() {
+	echo "Configure root password"
 	runlive_cmd passwd root || configure_root
 }
 
@@ -139,10 +140,10 @@ select_disk() {
 }
 
 install_os() {
-	local confirm efi efibitness
+	local confirm efi efibitness EFITGT
 
 	echo -e "\n"
-	read -p "Everything needed is ready. Type 'yes' to install Ataraxia on your computer (yes/no) " -r confirm
+	read -p "Everything needed is ready. Type 'yes' to install Ataraxia (yes/no) " -r confirm
 	case $confirm in
 		yes|y) true ;;
 		no|n|*) exit 0 ;;
@@ -207,8 +208,32 @@ install_os() {
 	echo "Creating udev database"
 	runlive_cmd udevadm hwdb --update
 
+	echo "Installing bootloader"
+	case $(uname -m) in
+		x86_64|i?86)
+				if [ "$efi" = "yes" ]; then
+					case $efibitness in
+						64) EFITGT="x86_64-efi" ;;
+						32) EFITGT="i386-efi" ;;
+					esac
+					runlive_cmd grub-install --target=$EFITGT --efi-directory=/boot --bootloader-id=ataraxia
+				else
+					runlive_cmd grub-install /dev/$disk
+				fi
+				;;
+		aarch64)
+				runlive_cmd grub-install --target=arm64-efi --efi-directory=/boot --bootloader-id=ataraxia
+				;;
+	esac
+
 	configure_root
 	configure_users
+
+	echo "Configurting hostname"
+	echo "$hostname" >> /mnt/etc/hostname
+
+	echo "Configuring timezone"
+	ln -sf /usr/share/zoneinfo/$timezone /mnt/etc/localtime
 
 	echo "Copying network configuration"
 	cp /tmp/net /mnt/etc/network/interfaces
@@ -216,6 +241,7 @@ install_os() {
 	echo "Unmounting everything"
 	for i in proc sys dev boot; do umount -l /mnt/${i}; done
 	umount -l /mnt
+	umount -l /media/cdrom
 }
 
 main() {
