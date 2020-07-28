@@ -206,8 +206,9 @@ install_os() {
 	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
 
 	echo "Cleaning up"
-	runlive_cmd userdel -r anon
-	runlive_cmd rpm -ehv ataraxia-installer
+#	runlive_cmd userdel -r anon
+#	runlive_cmd rpm -ehv ataraxia-installer
+	rm /mnt/usr/bin/ataraxia-installer
 
 	echo "Creating udev database"
 	runlive_cmd udevadm hwdb --update
