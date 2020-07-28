@@ -207,6 +207,7 @@ install_os() {
 
 	echo "Cleaning up"
 	runlive_cmd userdel -r anon
+	runlive_cmd rpm -ehv ataraxia-installer
 
 	echo "Creating udev database"
 	runlive_cmd udevadm hwdb --update
