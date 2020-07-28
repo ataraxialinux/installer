@@ -61,7 +61,7 @@ select_interfaces() {
 
 select_interfaces_b() {
 	echo "Available network types: dhcp, static, wireless"
-	read -p "Your type of network (selected: $ifmode) " -r ifmode
+	read -p "Your type of network " -r ifmode
 
 	case $ifmode in
 		dhcp)
@@ -142,7 +142,6 @@ select_disk() {
 install_os() {
 	local confirm efi efibitness EFITGT
 
-	echo -e "\n"
 	read -p "Everything needed is ready. Type 'yes' to install Ataraxia (yes/no) " -r confirm
 	case $confirm in
 		yes|y) true ;;
