@@ -179,7 +179,8 @@ install_os() {
 	parted -s /dev/$disk mklabel $mklabel
 	parted -a optimal -s /dev/$disk mkpart primary 0mb 256mb
 	parted -a optimal -s /dev/$disk mkpart primary 256mb 100%
-	[ "$mklabel" == "msdos" ] && parted -s /dev/$disk set 1 boot on
+	#[ "$mklabel" == "msdos" ] && parted -s /dev/$disk set 1 boot on
+	[ "$mklabel" == "msdos" ] && dd if=/dev/zero of=/dev/${disk}1 seek=1 count=2047
 
 	echo "Formating partitions"
 	case $bootfs in
@@ -242,6 +243,9 @@ install_os() {
 	for i in proc sys dev boot; do umount -l /mnt/${i}; done
 	umount -l /mnt
 	umount -l /media/cdrom
+
+	echo "Congratulations!"
+	echo "You have installed Ataraxia Linux on your computer. Explore!"
 }
 
 main() {
