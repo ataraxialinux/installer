@@ -199,6 +199,9 @@ install_os() {
 	echo "Installing operating system"
 	unsquashfs -f -d /mnt /media/cdrom/seiba/seiba.sfs
 
+	echo "Generating fstab"
+	genfstab -U /mnt >> /mnt/etc/fstab
+
 	echo "Creating mountpoints"
 	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
 
