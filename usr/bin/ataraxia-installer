@@ -142,7 +142,7 @@ select_disk() {
 install_os() {
 	local confirm efi efibitness EFITGT
 
-	read -p "Everything needed is ready. Type 'yes' to install Ataraxia (yes/no) " -r confirm
+	read -p "Everything needed is ready. Type 'yes' to install Ataraxia Linux (yes/no) " -r confirm
 	case $confirm in
 		yes|y) true ;;
 		no|n|*) exit 0 ;;
@@ -156,15 +156,10 @@ install_os() {
 	fi
 
 	echo "Searching for install media"
-	mount -t auto LABEL="ataraxialinux" /media/cdrom || \
-	{
-		sleep 3
-		mount /dev/disk/by-label/ataraxialinux /media/cdrom || \
-		{
-			echo "Failed to find Ataraxia Linux installation media"
-			exit 1
-		}
-	}
+	if ! mountpoint -q /media/cdrom; then
+		echo "Seems the initramfs hasn't mounted the install partition. Mount manually"
+		exit 1
+	fi
 
 	echo "Creating partitions"
 	if [ "$efi" == "yes" ]; then
@@ -206,7 +201,6 @@ install_os() {
 	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
 
 	echo "Cleaning up"
-#	runlive_cmd userdel -r anon
 	rm /mnt/usr/bin/ataraxia-installer
 	if [ -f "/mnt/etc/motd.old" ]; then
 		mv /mnt/etc/motd.old /mnt/etc/motd
