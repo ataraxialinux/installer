@@ -156,14 +156,14 @@ install_os() {
 	fi
 
 	echo "Searching for install media"
-	mount -n -r -t iso9660 LABEL="ataraxialinux" /media/cdrom || \
+	mount -t auto LABEL="ataraxialinux" /media/cdrom || \
 	{
 		sleep 3
-		mount -n -r /dev/disk/by-label/ataraxialinux /media/cdrom
-		if [ $? -ne 0 ]; then
+		mount /dev/disk/by-label/ataraxialinux /media/cdrom || \
+		{
 			echo "Failed to find Ataraxia Linux installation media"
 			exit 1
-		fi
+		}
 	}
 
 	echo "Creating partitions"
