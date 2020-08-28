@@ -45,7 +45,7 @@ configure_system() {
 }
 
 select_interfaces() {
-	local avail="$(find /sys/class/net -type l -printf "%f " | sort | uniq)"
+	local avail="$(find /sys/class/net -type l -printf "%f " | tr '\n' ' ' sort | uniq)"
 
 	echo "Available network interfaces: $avail"
 	read -p "Which network interfaces do you want to use (Type 's' to skip) " -r if
@@ -55,6 +55,11 @@ select_interfaces() {
 		s) ifskip="yes"; return 0 ;;
 		*) true ;;
 	esac
+
+	if [ ! -d "/sys/class/net/$if" ]; then
+		echo "You have selected wrong network interface. Please try again."
+		select_interfaces
+	fi
 
 	select_interfaces_b
 }
@@ -128,12 +133,16 @@ configure_users() {
 }
 
 select_disk() {
-	local avail="$(lsblk -lo NAME,TYPE | grep 'disk' | awk '{print $1}' | sort | uniq)"
+	local avail="$(lsblk -lo NAME,TYPE | grep 'disk' | awk '{print $1}' | tr '\n' ' ' | sort | uniq)"
 
 	echo "Available disks: $avail"
 	read -p "Which disk do you want to use? " -r disk
 	if [ -z "$disk" ]; then
 		echo "Please select disk to use for installation"
+		select_disk
+	fi
+	if [ ! -f "/dev/$disk" ]; then
+		echo "You have selected wrong disk. Please try again."
 		select_disk
 	fi
 	export disk
@@ -205,6 +214,7 @@ install_os() {
 	if [ -f "/mnt/etc/motd.old" ]; then
 		mv /mnt/etc/motd.old /mnt/etc/motd
 	fi
+	neko rm -r /mnt squashfs-tools
 
 	echo "Creating udev database"
 	runlive_cmd udevadm hwdb --update
