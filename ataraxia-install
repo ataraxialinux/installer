@@ -89,7 +89,7 @@ main() {
 			mkfs.vfat -F32 "$bootdevice" &>/dev/null
 			;;
 		ext4)
-			mke2fs -q -F -t ext4 "$bootdevice"
+			mke2fs -q -F -t ext4 "$bootdevice" &>/dev/null
 			;;
 	esac
 	mkfs.btrfs -q -f "$rootdevice"
@@ -128,7 +128,7 @@ main() {
 					runlive_cmd grub-install --target=$EFITGT --efi-directory=/boot --bootloader-id=ataraxia
 					runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
 				else
-					runlive_cmd grub-install /dev/$disk
+					runlive_cmd grub-install "$disk"
 					runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
 				fi
 				;;
