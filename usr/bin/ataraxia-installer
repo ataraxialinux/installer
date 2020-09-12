@@ -183,18 +183,34 @@ install_os() {
 
 	echo "Creating partitions"
 	if [ "$efi" == "yes" ]; then
-		mklabel="gpt"
+		mklabel="g"
 		bootfs="fat"
 	else
-		mklabel="msdos"
+		mklabel="o"
 		bootfs="ext4"
 	fi
 
-	parted -s /dev/$disk mklabel $mklabel
-	parted -a optimal -s /dev/$disk mkpart primary 2mb 256mb
-	parted -a optimal -s /dev/$disk mkpart primary 256mb 100%
-	[ "$mklabel" == "msdos" ] && parted -s /dev/$disk set 1 boot on
-	[ "$mklabel" == "gpt" ] &&   parted -s /dev/$disk set 1 esp on
+	wipefs -a /dev/$disk
+	sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' <<- EOF | fdisk /dev/$disk
+		$mklabel
+		n
+		p
+		1
+		4096
+		+256M
+		if [ "$efi" == "yes" ]; then
+			t
+			1
+		fi
+		n
+		p
+		2
+		
+		
+		a
+		1
+		w
+	EOF
 
 	echo "Formating partitions"
 	case $bootfs in
