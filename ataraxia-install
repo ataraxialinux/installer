@@ -78,10 +78,10 @@ configure_users() {
 	runlive_cmd useradd -m -G users,wheel,audio,video,input $iuser
 
 	if [ ! -d "/mnt/home/$iuser" ]; then
-		warn "no user"
+		warn "no user created"
+	else
+		configure_password "$iuser"
 	fi
-
-	#configure_password "$iuser"
 }
 
 main() {
@@ -202,8 +202,6 @@ main() {
 	for i in $services; do
 		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
 			runlive_cmd systemctl -q enable $i
-		else
-			warn "WARNING: skipping service $i: service not found"
 		fi
 	done
 
