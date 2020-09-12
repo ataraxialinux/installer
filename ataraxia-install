@@ -58,7 +58,7 @@ runlive_cmd() {
 }
 
 configure_password() {
-	:
+	runlive_cmd passwd "$1" || configure_password "$1"
 }
 
 main() {
