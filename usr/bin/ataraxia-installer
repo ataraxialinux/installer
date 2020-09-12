@@ -176,8 +176,8 @@ install_os() {
 	fi
 
 	echo "Searching for install media"
-	if ! mountpoint -q /media/cdrom; then
-		echo "Seems the initramfs hasn't mounted the install partition. Mount manually"
+	if ! mountpoint -q /run/live-os; then
+		echo "Seems the initramfs is not mounted. Mount manually"
 		exit 1
 	fi
 
@@ -212,7 +212,7 @@ install_os() {
 	mount "/dev/${disk}1" /mnt/boot
 
 	echo "Installing operating system"
-	unsquashfs -f -d /mnt /media/cdrom/seiba/seiba.sfs
+	unsquashfs -f -d /mnt /run/live-os/seiba/seiba.sfs
 
 	echo "Generating fstab"
 	genfstab -U /mnt >> /mnt/etc/fstab
@@ -277,7 +277,7 @@ install_os() {
 	echo "Unmounting everything"
 	for i in proc sys dev boot; do umount -l /mnt/${i}; done
 	umount -l /mnt
-	umount -l /media/cdrom
+	umount -l /run/live-os
 
 	echo "Congratulations!"
 	echo "You have installed Ataraxia Linux on your computer. Explore!"
