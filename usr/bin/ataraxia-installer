@@ -14,7 +14,7 @@ print_welcome() {
 
 		Make sure your disk size is more than 5 gigabytes.
 	EOF
-	echo -e "\e[5m\e[91mWARNING!\e[39m\e[0m ALL FILES WILL BE DESTROYED!\n"
+	echo -e "\e[5m\e[91mWARNING!\e[39m\e[0m ALL FILES AND PARTITIONS WILL BE DESTROYED!\n"
 }
 
 runlive_cmd() {
@@ -40,8 +40,8 @@ configure_system() {
 		*) kmap="$ikmap" ;;
 	esac
 
-	read -p "Figure out system hostname " -r hostname
-	read -p "System timezone " -r timezone
+	read -p "Figure out system hostname (eg. 'foo') " -r hostname
+	read -p "System timezone (eg. 'America/New_York') " -r timezone
 }
 
 select_interfaces() {
@@ -152,7 +152,7 @@ select_disk() {
 		echo "Please select disk to use for installation"
 		select_disk
 	fi
-	if [ ! -f "/dev/$disk" ]; then
+	if [ ! -b "/dev/$disk" ]; then
 		echo "You have selected wrong disk. Please try again."
 		select_disk
 	fi
@@ -260,6 +260,9 @@ install_os() {
 			runlive_cmd systemctl enable $i
 		fi
 	done
+
+	echo "Configuring keymap"
+	echo "KEYMAP=$keymap" >> /mnt/etc/vconsole.conf
 
 	echo "Configurting hostname"
 	echo "$hostname" >> /mnt/etc/hostname
