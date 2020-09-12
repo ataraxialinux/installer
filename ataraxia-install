@@ -146,7 +146,7 @@ main() {
 	msg "Configuring services"
 	for i in $services; do
 		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
-			runlive_cmd systemctl enable $i
+			runlive_cmd systemctl -q enable $i
 		fi
 	done
 
