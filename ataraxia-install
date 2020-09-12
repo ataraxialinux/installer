@@ -12,6 +12,7 @@ die() {
 	printf "\033[1;31m::\033[0m %s\n" "$@"
 	for i in proc sys dev; do
 		mountpoint -q /mnt/$i && umount -fl /mnt/$i
+	done
 	exit 1
 }
 
