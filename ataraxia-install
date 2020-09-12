@@ -16,6 +16,10 @@ die() {
 	exit 1
 }
 
+usage() {
+	exit 0
+}
+
 check_root() {
 	if [[ $EUID -ne 0 ]]; then
 		die "You must be root to run 'ataraxia-install'"
@@ -37,7 +41,7 @@ main() {
 	local keyboardmap="us"
 	local timezone="America/New_York"
 	local hostname="ataraxia"
-	local efi efibitness rootdevice services confirm mklabel bootfs EFITGT
+	local efi efibitness rootdevice services confirm mklabel bootfs disk EFITGT
 
 	while getopts r:b:k:t:h:s: opts; do
 		case $opts in
@@ -53,8 +57,10 @@ main() {
 
 	check_root
 
-	[ ! -b "$rootdevice" ] && die "You did not set the root device path"
-	[ ! -b "$bootdevice" ] && die "You did not set the boot device path"
+	[ ! -b "$rootdevice" ] && usage
+	[ ! -b "$bootdevice" ] && usage
+
+	disk="$(echo $bootdevice | sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/')"
 
 	msg "Installing Ataraxia Linux on $rootdevice"
 	read -p "Continue [y/N]: " -r confirm
