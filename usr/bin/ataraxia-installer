@@ -45,7 +45,7 @@ configure_system() {
 }
 
 select_interfaces() {
-	local avail="$(find /sys/class/net -type l -printf "%f " | tr '\n' ' ' sort | uniq)"
+	local avail="$(find /sys/class/net -type l -printf "%f " | tr '\n' ' ' | sort | uniq)"
 
 	echo "Available network interfaces: $avail"
 	read -p "Which network interfaces do you want to use (Type 's' to skip) " -r if
