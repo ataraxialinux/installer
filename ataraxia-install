@@ -161,7 +161,7 @@ main() {
 	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
 
 	msg "Cleaning up"
-	rm /mnt/usr/bin/ataraxia-installer
+	rm /mnt/usr/bin/ataraxia-install
 	if [ -f "/mnt/etc/motd.old" ]; then
 		mv /mnt/etc/motd.old /mnt/etc/motd
 	fi
