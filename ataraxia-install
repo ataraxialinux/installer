@@ -60,7 +60,7 @@ main() {
 	[ ! -b "$rootdevice" ] && usage
 	[ ! -b "$bootdevice" ] && usage
 
-	disk="$(echo $bootdevice | sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/')"
+	disk="$(echo $bootdevice | sed -e 's/[0-9]\+$//')"
 
 	msg "Installing Ataraxia Linux on $rootdevice"
 	read -p "Continue [y/N]: " -r confirm
