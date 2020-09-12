@@ -123,8 +123,7 @@ configure_root() {
 }
 
 configure_users_b() {
-	local user="$1"
-	runlive_cmd passwd $user || configure_users_b $user
+	runlive_cmd passwd $1 || configure_users_b $1
 }
 
 configure_users() {
