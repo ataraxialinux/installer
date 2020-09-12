@@ -196,7 +196,7 @@ install_os() {
 		n
 		p
 		1
-		4096
+		
 		+256M
 		w
 	EOF
