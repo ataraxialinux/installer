@@ -71,33 +71,44 @@ select_interfaces_b() {
 	case $ifmode in
 		dhcp)
 			cat > /tmp/net <<-EOF
-				auto lo $if
-				iface lo inet loopback
-				iface $if inet dhcp
+				[Match]
+				Name=$if
+
+				[Network]
+				DHCP=ipv4
+
+				[DHCP]
+				UseDomains=true
 			EOF
 			;;
 		static)
 			read -p "Your static address (eg. '192.168.0.101') " -r iaddress
-			read -p "Your netmask (eg. '255.255.255.0') " -r inetmask
 			read -p "Your gateway (eg. '192.168.0.1') " -r igateway
 			cat > /tmp/net <<-EOF
-				auto lo $if
-				iface lo inet loopback
-				iface $if inet static
-					address $iaddress
-					netmask $inetmask
-					gateway $igateway
+				[Match]
+				Name=$if
+
+				[Network]
+				Address=$iaddress/24
+				Gateway=$igateway
+				DNS=$igateway
 			EOF
 			;;
 		wireless)
 			read -p "Your Wi-Fi network name " -r iessid
 			read -p "Your Wi-Fi password " -s -r ipsk
 			cat > /tmp/net <<-EOF
-				auto lo $if
-				iface lo inet loopback
-				iface $if inet dhcp
-					wpa-ssid $iessid
-					wpa-psk $ipsk
+				[Match]
+				Name=$if
+
+				[Network]
+				DHCP=yes
+			EOF
+			cat > /tmp/wpa <<-EOF
+				network={
+					ssid="$iessid"
+					psk="$ipsk"
+				}
 			EOF
 			;;
 		*)
@@ -243,6 +254,13 @@ install_os() {
 	configure_root
 	configure_users
 
+	echo "Configuring services"
+	for i in NetworkManager lightdm gdm earlyoom; do
+		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
+			runlive_cmd systemctl enable $i
+		fi
+	done
+
 	echo "Configurting hostname"
 	echo "$hostname" >> /mnt/etc/hostname
 
@@ -250,7 +268,8 @@ install_os() {
 	ln -sf /usr/share/zoneinfo/$timezone /mnt/etc/localtime
 
 	echo "Copying network configuration"
-	cp /tmp/net /mnt/etc/network/interfaces
+	mv /tmp/net /mnt/etc/systemd/network/10-default.network
+	[ -f "/tmp/wpa" ] && mv /tmp/wpa /mnt/etc/wpa_supplicant/wpa_supplicant.conf
 
 	echo "Unmounting everything"
 	for i in proc sys dev boot; do umount -l /mnt/${i}; done
