@@ -182,8 +182,8 @@ main() {
 		fi
 	done
 
-	msg "Setting keymap: $keymap"
-	echo "KEYMAP=$keymap" >> /mnt/etc/vconsole.conf
+	msg "Setting keymap: $keyboardmap"
+	echo "KEYMAP=$keyboardmap" >> /mnt/etc/vconsole.conf
 
 	msg "Setting hostname: $hostname"
 	echo "$hostname" >> /mnt/etc/hostname
