@@ -58,7 +58,30 @@ runlive_cmd() {
 }
 
 configure_password() {
+	msg "Set password for $1"
 	runlive_cmd passwd "$1" || configure_password "$1"
+}
+
+configure_users() {
+	local iskip iuser
+
+	msg "Add normal users"
+	read -p "Add new user, figure out the name (eg, 'foo') " -r iuser
+	if [ -z "$iuser" ]; then
+		read -p "Do you want to skip users creation? (yes/no) " -r iskip
+		case $iskip in
+			yes|y) return 0 ;;
+		esac
+	fi
+
+	msg "Adding user: $iuser"
+	runlive_cmd useradd -m -G users,wheel,audio,video,input $iuser
+
+	if [ ! -d "/mnt/home/$iuser" ]; then
+		warn "no user"
+	fi
+
+	#configure_password "$iuser"
 }
 
 main() {
@@ -172,13 +195,15 @@ main() {
 				;;
 	esac
 
-	msg "Set root password"
 	configure_password "root"
+	configure_users
 
 	msg "Configuring services"
 	for i in $services; do
 		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
 			runlive_cmd systemctl -q enable $i
+		else
+			warn "WARNING: skipping service $i: service not found"
 		fi
 	done
 
