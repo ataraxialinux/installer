@@ -198,17 +198,23 @@ install_os() {
 		1
 		4096
 		+256M
-		if [ "$efi" == "yes" ]; then
+		w
+	EOF
+
+	if [ "$efi" == "yes" ]; then
+		sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' <<- EOF | fdisk /dev/$disk
 			t
 			1
-		fi
+			w
+		EOF
+	fi
+
+	sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' <<- EOF | fdisk /dev/$disk
 		n
 		p
 		2
 		
 		
-		a
-		1
 		w
 	EOF
 
