@@ -41,7 +41,8 @@ main() {
 	local keyboardmap="us"
 	local timezone="America/New_York"
 	local hostname="ataraxia"
-	local efi efibitness rootdevice services confirm mklabel bootfs disk EFITGT
+	local services="gdm lightdm"
+	local efi efibitness rootdevice confirm mklabel bootfs disk EFITGT
 
 	while getopts r:b:k:t:h:s: opts; do
 		case $opts in
@@ -50,7 +51,7 @@ main() {
 			k) keyboardmap="$OPTARG" ;;
 			t) timezone="$OPTARG" ;;
 			h) hostname="$OPTARG" ;;
-			s) services="$OPTARG" ;;
+			s) services="$services $OPTARG" ;;
 		esac
 	done
 	shift $((OPTIND - 1))
@@ -142,8 +143,21 @@ main() {
 				;;
 	esac
 
-	# SYS CONFIG
+	msg "Configuring services"
+	for i in $services; do
+		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
+			runlive_cmd systemctl enable $i
+		fi
+	done
 
+	msg "Setting keymap: $keymap"
+	echo "KEYMAP=$keymap" >> /mnt/etc/vconsole.conf
+
+	msg "Setting hostname: $hostname"
+	echo "$hostname" >> /mnt/etc/hostname
+
+	msg "Setting timezone: $timezone"
+	ln -sf /usr/share/zoneinfo/$timezone /mnt/etc/localtime
 
 	msg "Unmounting everything"
 	for i in proc sys dev boot; do umount -fl /mnt/${i}; done
