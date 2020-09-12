@@ -17,6 +17,26 @@ die() {
 }
 
 usage() {
+	cat <<-EOF
+		ataraxia-install - Simple system installer for Ataraxia Linux
+
+		Usage: ataraxia-install [OPTION] [ARGUMENT]
+
+		Options:
+		   -b [BOOT DEVICE]	Boot partition (eg. /dev/sda1)
+		   -r [ROOT DEVICE]	Root partition (eg. /dev/sda2)
+		   -w [SWAP PARTITION]	Swap partition (eg. /dev/sda3)
+		   -k [KEYMAP]		Setup keymap to use (default: us)
+		   -t [TIMEZONE]	Setup timezone to use (default: America/New_York)
+		   -h [HOSTNAME]	Setup hostname to use (default: ataraxia)
+		   -s [SERVICES]	Enable specific services on install
+
+		Example:
+		   ataraxia-install -r /dev/sda2 -b /dev/sda1 -s "redis"
+
+		BUG TRACKER: https://github.com/ataraxialinux/neko/installer
+		
+	EOF
 	exit 0
 }
 
@@ -37,17 +57,22 @@ runlive_cmd() {
 		/usr/bin/$cmd
 }
 
+configure_password() {
+	:
+}
+
 main() {
 	local keyboardmap="us"
 	local timezone="America/New_York"
 	local hostname="ataraxia"
 	local services="gdm lightdm"
-	local efi efibitness rootdevice confirm mklabel bootfs disk EFITGT
+	local efi efibitness rootdevice bootdevice swapdevice confirm mklabel bootfs disk EFITGT
 
-	while getopts r:b:k:t:h:s: opts; do
+	while getopts r:b:w:k:t:h:s: opts; do
 		case $opts in
 			r) rootdevice="$(realpath $OPTARG)" ;;
 			b) bootdevice="$(realpath $OPTARG)" ;;
+			w) swapdevice="$(realpath $OPTARG)" ;;
 			k) keyboardmap="$OPTARG" ;;
 			t) timezone="$OPTARG" ;;
 			h) hostname="$OPTARG" ;;
@@ -94,6 +119,10 @@ main() {
 			;;
 	esac
 	mkfs.btrfs -q -f "$rootdevice"
+	if [ -b "$swapdevice" ]; then
+		mkswap "$swapdevice"
+		swapon "$swapdevice"
+	fi
 
 	mount "$rootdevice" /mnt
 	mkdir -p /mnt/boot
@@ -143,6 +172,9 @@ main() {
 				;;
 	esac
 
+	msg "Set root password"
+	configure_password "root"
+
 	msg "Configuring services"
 	for i in $services; do
 		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
@@ -162,6 +194,10 @@ main() {
 	msg "Unmounting everything"
 	for i in proc sys dev boot; do umount -fl /mnt/${i}; done
 	umount -fl /mnt
+
+	if [ -b "$swapdevice" ]; then
+		swapoff "$swapdevice"
+	fi
 
 	msg "Congratulations!"
 	msg "You have installed Ataraxia Linux on your computer. Explore!"
