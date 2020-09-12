@@ -255,7 +255,7 @@ install_os() {
 	configure_users
 
 	echo "Configuring services"
-	for i in NetworkManager lightdm gdm earlyoom; do
+	for i in gdm lightdm; do
 		if [ -f "/mnt/usr/lib/systemd/system/$i.service" ]; then
 			runlive_cmd systemctl enable $i
 		fi
