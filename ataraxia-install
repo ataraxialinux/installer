@@ -155,7 +155,7 @@ main() {
 	unsquashfs -f -d /mnt /run/live-os/seiba/seiba.sfs
 
 	msg "Generating fstab"
-	genfstab -U /mnt >> /mnt/etc/fstab
+	runlive_cmd genfstab -U / >> /etc/fstab
 
 	msg "Creating mountpoints"
 	for i in proc sys dev; do mount --bind /${i} /mnt/${i}; done
