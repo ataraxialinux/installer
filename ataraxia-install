@@ -89,7 +89,7 @@ main() {
 	local timezone="America/New_York"
 	local hostname="ataraxia"
 	local services="gdm lightdm"
-	local efi efibitness rootdevice bootdevice swapdevice confirm mklabel bootfs disk EFITGT
+	local efi rootdevice bootdevice swapdevice confirm mklabel bootfs disk EFITGT
 
 	while getopts r:b:w:k:t:h:s: opts; do
 		case $opts in
@@ -125,7 +125,6 @@ main() {
 
 	if [ -d "/sys/firmware/efi" ]; then
 		efi="yes"
-		efibitness="$(cat /sys/firmware/efi/fw_platform_size)"
 		bootfs="fat"
 	else
 		efi="no"
@@ -173,26 +172,16 @@ main() {
 	msg "Installing bootloader"
 	case $(uname -m) in
 		x86_64|i?86)
-				if [ "$efi" = "yes" ]; then
-					case $efibitness in
-						64) EFITGT="x86_64-efi" ;;
-						32) EFITGT="i386-efi" ;;
-					esac
-					runlive_cmd grub-install --target=$EFITGT --efi-directory=/boot --bootloader-id=ataraxia
-					runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
-				else
-					runlive_cmd grub-install "$disk"
-					runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
-				fi
-				;;
-		aarch64)
-				runlive_cmd grub-install --target=arm64-efi --efi-directory=/boot --bootloader-id=ataraxia
+			if [ "$efi" = "yes" ]; then
+				runlive_cmd bootctl --path=/boot install
+			else
+				runlive_cmd grub-install "$disk"
 				runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
-				;;
-		armv*)
-				runlive_cmd grub-install --target=arm-efi --efi-directory=/boot --bootloader-id=ataraxia
-				runlive_cmd grub-mkconfig -o /boot/grub/grub.cfg
-				;;
+			fi
+			;;
+		aarch64|armv*)
+			runlive_cmd bootctl --path=/boot install
+			;;
 	esac
 
 	configure_password "root"
